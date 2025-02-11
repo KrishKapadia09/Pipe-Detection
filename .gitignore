@@ -1,0 +1,9 @@
+# Ignore model weights, SSL certificates, and unnecessary files
+*.pt
+cert.pem
+key.pem
+__pycache__/
+uploads/
+results/
+videos/
+.env

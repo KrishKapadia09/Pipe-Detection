@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Live Feed</title>
+</head>
+<body>
+    <h1>Mobile Live Feed</h1>
+    <video id="video" autoplay playsinline></video>
+    <div>
+        <h3>Detected Objects Count: <span id="count">0</span></h3>
+    </div>
+    <button id="stopButton">Stop Live Feed</button>
+
+    <script>
+        const video = document.getElementById('video');
+        const countElement = document.getElementById('count');
+        const stopButton = document.getElementById('stopButton');
+
+        // Access the rear camera
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { exact: "environment" }
+            }
+        })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error('Error accessing the camera: ', err);
+        });
+
+        function processFrame() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/jpeg');
+            fetch('/process_frame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                countElement.textContent = data.count;
+            })
+            .catch(err => {
+                console.error('Error processing frame: ', err);
+            });
+        }
+
+        // Process frames at regular intervals
+        setInterval(processFrame, 1000);
+
+        stopButton.addEventListener('click', () => {
+            fetch('/stop_live', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                window.location.href = "/";
+            })
+            .catch(err => {
+                console.error('Error stopping live feed: ', err);
+            });
+        });
+
+        // Start live feed and recording
+        fetch('/start_live', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+        })
+        .catch(err => {
+            console.error('Error starting live feed: ', err);
+        });
+    </script>
+</body>
+</html>
